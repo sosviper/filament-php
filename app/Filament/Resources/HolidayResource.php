@@ -2,11 +2,10 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\TimesheetResource\Pages;
-use App\Filament\Resources\TimesheetResource\RelationManagers;
-use App\Models\Timesheet;
+use App\Filament\Resources\HolidayResource\Pages;
+use App\Filament\Resources\HolidayResource\RelationManagers;
+use App\Models\Holiday;
 use Filament\Forms;
-use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -15,15 +14,15 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class TimesheetResource extends Resource
+class HolidayResource extends Resource
 {
-    protected static ?string $model = Timesheet::class;
+    protected static ?string $model = Holiday::class;
 
     protected static ?string $navigationGroup = 'Employees Management';
 
-    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
+    protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Form $form): Form
     {
@@ -35,15 +34,14 @@ class TimesheetResource extends Resource
                 Forms\Components\Select::make('user_id')
                     ->relationship(name: 'user', titleAttribute: 'name')
                     ->required(),
+                Forms\Components\DatePicker::make('day')
+                    ->required(),
                 Forms\Components\Select::make('type')
                     ->options([
-                        'work' => 'Working',
-                        'pause' => 'In Pause',
+                        'decline' => 'Decline',
+                        'approved' => 'Approved',
+                        'pending' => 'Pending',
                     ])
-                    ->required(),
-                Forms\Components\DateTimePicker::make('day_in')
-                    ->required(),
-                Forms\Components\DateTimePicker::make('day_out')
                     ->required(),
             ]);
     }
@@ -53,20 +51,21 @@ class TimesheetResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('calendar.name')
-                    ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('user.name')
-                    ->sortable()
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('day')
+                    ->date()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('type')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('day_in')
-                    ->dateTime()
-                    ->sortable()
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('day_out')
-                    ->dateTime()
-                    ->sortable()
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'gray',
+                        'approved' => 'success',
+                        'decline' => 'danger',
+                    })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -80,13 +79,13 @@ class TimesheetResource extends Resource
             ->filters([
                 SelectFilter::make('type')
                     ->options([
-                        'work' => 'Working',
-                        'pause' => 'In Pause'
+                        'decline' => 'Decline',
+                        'approved' => 'Approved',
+                        'pending' => 'Pending'
                     ])
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -105,9 +104,9 @@ class TimesheetResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListTimesheets::route('/'),
-            'create' => Pages\CreateTimesheet::route('/create'),
-            'edit' => Pages\EditTimesheet::route('/{record}/edit'),
+            'index' => Pages\ListHolidays::route('/'),
+            'create' => Pages\CreateHoliday::route('/create'),
+            'edit' => Pages\EditHoliday::route('/{record}/edit'),
         ];
     }
 }
